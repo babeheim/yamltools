@@ -7,6 +7,7 @@ nullToNA <- function(x) {
 read_yaml <- function(file, to.json=FALSE){
   x <- readLines( file , warn=FALSE )
   x <- gsub("\"", "'", x)
+  x <- gsub(":  ", ": ", x)
   for(i in 1:length(x)){
     if( length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0 ){
       x[i] <- gsub(": ", ": \"", x[i])

@@ -8,7 +8,7 @@ test_that("works on all of them", {
     writeLines(x, newname)
   }
   my_files <- list.files('./single_yaml_to_json', pattern="\\.json", full.names=TRUE)
-  expect_true(length(my_files)==4)
+  expect_true(length(my_files)==5)
 })
 
 test_that("flat array", {
@@ -56,6 +56,18 @@ test_that("n_subtables", {
   x <- vectorize(x)
   expect_true(length(x$residents)==3)
   expect_true(length(x$visitors)==3)
+})
+
+test_that("can handle two levels deep", {
+  my_file <- "./single_yaml_to_json/one_subtable_two_levels.yaml" 
+  x <- read_yaml(my_file, to.json=TRUE)
+  newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
+  writeLines(x, newname) 
+  my_file <- "./single_yaml_to_json/one_subtable_two_levels.json" 
+  x <- read_json(my_file, simplifyVector=TRUE)
+  x <- vectorize(x)
+  expect_true(all(dim(x)==c(3,2)))
+  expect_true(length(x$entries)==3)
 })
 
 test_that("can combine flat array yamls with identical structures into one dataframe", {
