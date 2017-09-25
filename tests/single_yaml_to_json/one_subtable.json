@@ -1,0 +1,53 @@
+[
+  {
+    "date": ["2017-01-01"],
+    "entries": [
+      {
+        "amount": ["-3"],
+        "notes": ["blah"]
+      },
+      {
+        "amount": ["-5"],
+        "notes": ["blah2"]
+      },
+      {
+        "amount": ["-10"],
+        "notes": ["blah blah"]
+      }
+    ]
+  },
+  {
+    "date": ["2017-01-02"],
+    "entries": [
+      {
+        "amount": ["-3"],
+        "notes": ["blah"]
+      },
+      {
+        "amount": ["-5"],
+        "notes": ["blah2"]
+      },
+      {
+        "amount": ["-10"],
+        "notes": ["blah blah"]
+      }
+    ]
+  },
+  {
+    "date": ["2017-01-03"],
+    "entries": [
+      {
+        "amount": ["-3"],
+        "notes": ["blah"]
+      },
+      {
+        "amount": ["-5"],
+        "notes": ["blah2"]
+      },
+      {
+        "amount": ["-10"],
+        "notes": ["blah blah"]
+      }
+    ]
+  }
+]
