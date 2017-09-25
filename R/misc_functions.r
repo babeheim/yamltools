@@ -21,14 +21,39 @@ read_yaml <- function(file, to.json=FALSE){
 }
 
 vectorize <- function( input_list ){
+  output_list <- input_list
   for(i in 1:ncol(input_list)){
-    if(class(input_list[,i])=="list"){
+    if(class(output_list[,i])=="list"){
       if(class(input_list[,i][[1]])!="data.frame"){
         empty <- which(lapply(input_list[,i], class)=="list")
-        if(length(empty)>0) input_list[empty,i] <- NA
-        input_list[,i] <- unlist(nullToNA(input_list[,i]))
+        if(length(empty)>0) output_list[empty,i] <- NA
+        output_list[,i] <- unlist(nullToNA(output_list[,i]))
       }
     }
   }
-  input_list
+  return(output_list)
+}
+
+rbind_list <- function( input_list ){
+  df1 <- vectorize(input_list[[1]])
+  df1 <- do.call(data.frame, df1)
+  for(i in 2:length(input_list)){
+    df2 <- vectorize(input_list[[i]])
+    df2 <- do.call(data.frame, df2)
+    n1 <- colnames(df1)
+    n2 <- colnames(df2)
+    if( any(!n1 %in% n2) ){
+      new_cols <- n1[!n1 %in% n2]
+      df2 <- cbind(df2, matrix("", nrow=nrow(df2), ncol=length(new_cols)))
+      colnames(df2) <- c(n2, new_cols)
+    }
+    if( any(!n2 %in% n1) ){
+      new_cols <- n2[!n2 %in% n1]
+      df1 <- cbind(df1, matrix("", nrow=nrow(df1), ncol=length(new_cols)))
+      colnames(df1) <- c(n1, new_cols)
+    }
+    df1 <- rbind(df1, df2)
+  }
+  df1 <- as.data.frame(df1, stringsAsFactors=FALSE)
+  return(df1)
 }
