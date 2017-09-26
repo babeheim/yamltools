@@ -20,9 +20,10 @@ read_yaml <- function(file, to.json=FALSE){
   return(output)
 }
 
+# bug: input_list is a list of length 1 b/c all other colimsn are empty
 vectorize <- function( input_list ){
-  output_list <- input_list
-  for(i in 1:ncol(input_list)){
+  output_list <- as.data.frame(input_list)
+  for(i in 1:ncol(output_list)){
     if(class(output_list[,i])=="list"){
       if(class(input_list[,i][[1]])!="data.frame"){
         empty <- which(lapply(input_list[,i], class)=="list")
