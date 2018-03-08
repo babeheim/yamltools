@@ -4,6 +4,25 @@ nullToNA <- function(x) {
   return(x)
 }
 
+read_yaml <- function (file, to.json = FALSE) {
+  x <- readLines(file, warn = FALSE)
+  x <- gsub("\"", "'", x)
+  x <- gsub(":  ", ": ", x)
+  for (i in 1:length(x)) {
+    if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
+      line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
+      line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
+      line_value <- gsub("^\\s+|\\s+$", "", line_value) 
+      line_value <- paste0("\"", line_value, "\"")
+      line_value <- gsub("\"'|'\"", "\"", line_value) 
+      x[i] <- paste0(line_key, ": ", line_value)
+    }
+  }
+  if (x[length(x)] != "") x <- c(x, "")
+  output <- yaml.load(paste(x, collapse = "\n"))
+  if (to.json) output <- jsonlite::toJSON(output, pretty = TRUE)
+  return(output)
+}
 
 # bug: input_list is a list of length 1 b/c all other colimsn are empty
 vectorize <- function( input_list ){
