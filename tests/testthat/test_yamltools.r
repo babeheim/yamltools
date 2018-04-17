@@ -1,6 +1,7 @@
-rm(list=ls())
 
-test_that("works on all of them", {
+
+# replace this with yaml_loads or whatever
+test_that("read_yaml works on all yamls", {
   my_files <- list.files('./single_yaml_to_json', pattern="\\.yml|\\.yaml", full.names=TRUE)
   for(i in 1:length(my_files)){
     x <- read_yaml(my_files[i], to.json=TRUE)
@@ -11,7 +12,15 @@ test_that("works on all of them", {
   expect_true(length(my_files)==5)
 })
 
-test_that("flat array", {
+# yaml_loads detects all improper yamls
+
+
+
+
+
+
+
+test_that("a single flat table loads", {
   my_file <- "./single_yaml_to_json/flat_array.yml" 
   x <- read_yaml(my_file, to.json=TRUE)
   newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
@@ -22,7 +31,7 @@ test_that("flat array", {
   expect_true(all(dim(x)==c(3,3)))
 })
 
-test_that("flat array with unique keys", {
+test_that("a flat array with some unique keys loads", {
   my_file <- "./single_yaml_to_json/flat_array_unique_keys.yaml" 
   x <- read_yaml(my_file, to.json=TRUE)
   newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
@@ -33,7 +42,7 @@ test_that("flat array with unique keys", {
   expect_true(all(dim(x)==c(3,5)))
 })
 
-test_that("one_subtable", {
+test_that("a file with one_subtable loads", {
   my_file <- "./single_yaml_to_json/one_subtable.yaml" 
   x <- read_yaml(my_file, to.json=TRUE)
   newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
@@ -41,11 +50,16 @@ test_that("one_subtable", {
   my_file <- "./single_yaml_to_json/one_subtable.json" 
   x <- read_json(my_file, simplifyVector=TRUE)
   x <- vectorize(x)
-  expect_true(all(dim(x)==c(3,2)))
-  expect_true(length(x$entries)==3)
+  expect_true(all(dim(x) == c(3,2)))
+  expect_true(length(x$entries) == 3)
+  expect_true(all(dim(x$entries[[1]]) == c(3,2)))
 })
 
-test_that("n_subtables", {
+
+
+
+
+test_that("a file with many subtables loads", {
   my_file <- "./single_yaml_to_json/n_subtables.yaml" 
   x <- read_yaml(my_file, to.json=TRUE)
   newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
@@ -58,7 +72,7 @@ test_that("n_subtables", {
   expect_true(length(x$visitors)==3)
 })
 
-test_that("can handle two levels deep", {
+test_that("one file with two sub-levels loads", {
   my_file <- "./single_yaml_to_json/one_subtable_two_levels.yaml" 
   x <- read_yaml(my_file, to.json=TRUE)
   newname <- gsub("\\.yaml|\\.yml", ".json", my_file)
@@ -68,7 +82,11 @@ test_that("can handle two levels deep", {
   x <- vectorize(x)
   expect_true(all(dim(x)==c(3,2)))
   expect_true(length(x$entries)==3)
+  expect_true(all(dim(x$entries[[1]]$passengers[[1]]) == c(3,2)))
 })
+
+
+# combining files:
 
 test_that("can combine flat array yamls with identical structures into one dataframe", {
   my_files <- list.files('./batch_yaml_flat', pattern="*.yml", full.names=TRUE)
@@ -86,8 +104,6 @@ test_that("can combine flat array yamls with identical structures into one dataf
   expect_true(all(dim(output) == c(27,3)))
 })
 
-# is rbind.pages saavy enough if they have different shapes tho? yes! goodbye rbind_plus!
-# apparently plry::rbind.fill does this job too
 
 test_that("can combine flat-array yamls with unique keys into one dataframe", {
   my_files <- list.files('./batch_yaml_flat_variable', pattern="*.yml", full.names=TRUE)

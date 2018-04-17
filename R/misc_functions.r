@@ -1,4 +1,73 @@
 
+yaml_loads <- function(path, quote_everything = TRUE) {
+  x <- readLines(path)
+  x <- gsub("\"", "'", x)
+  if(quote_everything){
+    for(i in 1:length(x)){
+      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
+        line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
+        line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
+        line_value <- gsub("^\\s+|\\s+$", "", line_value) 
+        line_value <- paste0("\"", line_value, "\"")
+        line_value <- gsub("\"'|'\"", "\"", line_value) 
+        x[i] <- paste0(line_key, ": ", line_value)
+      }
+    }
+  }
+  res <- try(new <- yaml.load(paste(x, collapse="\n")), TRUE)
+  failed <- class(res)=="try-error"
+  return(!failed)
+}
+
+validate_keys <- function(data, pattern, nchar = NA) {
+  keys <- grep(pattern, names(data))
+  if(length(keys) == 0) is_valid <- FALSE
+  if(length(keys) > 0){
+    is_valid <- TRUE
+    for(i in 1:length(keys)){
+      this_value <- data[keys[i]]
+      if(is.na(this_value)) this_value <- ""
+      this_value <- gsub("'", "", this_value)
+      this_value <- gsub("\"", "", this_value)
+      if(is.na(nchar)) proper_length <- nchar(this_value) > 0
+      if(!is.na(nchar)) proper_length <- nchar(this_value) == nchar
+      is_valid <- is_valid & proper_length
+    }
+  }
+  return(is_valid)
+}
+
+bad_transcriber <- function(data) {
+  transcriber <- data$transcriber
+  transcriber <- gsub("'", "", transcriber)
+  out <- (is.na(transcriber) | length(transcriber)==0)
+  return(out)
+}
+
+bad_hash <- function(data, hash_length = 7) {
+  hash <- gsub("'", "", data$pdf_hash)
+  out <- nchar(hash) != hash_length
+  return(out)
+}
+
+bad_dates <- function(data) {
+  date_check <- grep("date$", names(data))
+  valid_date <- TRUE
+  for(i in 1:length(date_check)){
+    date_value <- data[[date_check[i]]]
+    valid_date <- valid_date & !is.na(as.Date(date_value, "%Y-%m-%d"))
+  }
+  out <- !valid_date
+  return(out)
+}
+
+bad_stamp <- function(data) {
+  stamp <- gsub("'", "", data$stamp_number)
+  out <- nchar(stamp) != 6 ### ?
+  return(out)
+}
+
+
 nullToNA <- function(x) {
   x[sapply(x, is.null)] <- NA
   return(x)

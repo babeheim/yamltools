@@ -1,0 +1,35 @@
+
+how to handle lists within items in a list, e.g. in the food diary interviews
+
+daily_lists:
+- day: Lunes
+  items:
+    - food: 
+      quantity: 
+      type: 
+      which_meal: 
+      how_acquired: 
+      price: 
+      from_whom: 
+  visitors_breakfast: 
+  visitors_lunch: 
+  visitors_dinner: 
+- day: Martes
+  items:
+    - food: 
+      quantity: 
+      type: 
+      which_meal: 
+      how_acquired: 
+      price: 
+      from_whom: 
+  visitors_breakfast: 
+  visitors_lunch: 
+  visitors_dinner: 
+
+
+  # things I didn't anticipate: 
+# empty values {} within sublists being treated as 
+# data frames.
+# and...missing entries!
+# getting rid of empty sub-entries that are accidentally called dataframe.s...incorporate into vectorize!?
