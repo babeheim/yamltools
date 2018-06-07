@@ -3,18 +3,18 @@
     "date": ["2017-01-01"],
     "amount": ["-3"],
     "notes": ["blah"],
-    "language": ["english"]
+    "language": ["'english'"]
   },
   {
     "date": ["2017-01-02"],
     "amount": ["-3"],
     "notes": ["blah"],
-    "language": ["english"]
+    "language": ["'english'"]
   },
   {
     "date": ["2017-01-03"],
     "amount": ["-3"],
     "notes": ["blah"],
-    "language": ["english"]
+    "language": ["'english'"]
   }
 ]

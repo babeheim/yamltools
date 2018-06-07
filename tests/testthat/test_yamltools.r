@@ -13,13 +13,6 @@ test_that("read_yaml works on all yamls", {
 })
 
 # yaml_loads detects all improper yamls
-
-
-
-
-
-
-
 test_that("a single flat table loads", {
   my_file <- "./single_yaml_to_json/flat_array.yml" 
   x <- read_yaml(my_file, to.json=TRUE)
@@ -54,10 +47,6 @@ test_that("a file with one_subtable loads", {
   expect_true(length(x$entries) == 3)
   expect_true(all(dim(x$entries[[1]]) == c(3,2)))
 })
-
-
-
-
 
 test_that("a file with many subtables loads", {
   my_file <- "./single_yaml_to_json/n_subtables.yaml" 
