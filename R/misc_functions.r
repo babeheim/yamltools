@@ -1,10 +1,10 @@
 
-yaml_loads <- function(path, quote_everything = TRUE) {
+yaml_loads <- function(path, quote_everything = FALSE) {
   x <- readLines(path)
   x <- gsub("\"", "'", x)
   if(quote_everything){
     for(i in 1:length(x)){
-      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
+      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {
         line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
         line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
         line_value <- gsub("^\\s+|\\s+$", "", line_value) 
@@ -44,6 +44,13 @@ bad_transcriber <- function(data) {
   return(out)
 }
 
+bad_reviewer <- function(data) {
+  reviewer <- data$reviewer
+  reviewer <- gsub("'", "", reviewer)
+  out <- (is.na(reviewer) | length(reviewer)==0)
+  return(out)
+}
+
 bad_hash <- function(data, hash_length = 7) {
   hash <- gsub("'", "", data$pdf_hash)
   out <- nchar(hash) != hash_length
@@ -73,19 +80,20 @@ nullToNA <- function(x) {
   return(x)
 }
 
-# the yaml package just wrote one of these...maybe just use that?!
-read_yaml <- function (file, to.json = FALSE) {
+read_yaml2 <- function (file, to.json = FALSE, quote_everything = TRUE) {
   x <- readLines(file, warn = FALSE)
   x <- gsub("\"", "'", x)
   x <- gsub(":  ", ": ", x)
-  for (i in 1:length(x)) {
-    if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
-      line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
-      line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
-      line_value <- gsub("^\\s+|\\s+$", "", line_value) 
-      line_value <- paste0("\"", line_value, "\"")
-      line_value <- gsub("\"'|'\"", "\"", line_value) 
-      x[i] <- paste0(line_key, ": ", line_value)
+  if (quote_everything) {
+    for (i in 1:length(x)) {
+      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
+        line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
+        line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
+        line_value <- gsub("^\\s+|\\s+$", "", line_value) 
+        line_value <- paste0("\"", line_value, "\"")
+        line_value <- gsub("\"'|'\"", "\"", line_value) 
+        x[i] <- paste0(line_key, ": ", line_value)
+      }
     }
   }
   if (x[length(x)] != "") x <- c(x, "")
@@ -94,7 +102,7 @@ read_yaml <- function (file, to.json = FALSE) {
   return(output)
 }
 
-# bug: input_list is a list of length 1 b/c all other colimsn are empty
+# bug: input_list is a list of length 1 b/c all other columns are empty
 
 vectorize <- function (input_list) {
   output_list <- as.data.frame(input_list)
