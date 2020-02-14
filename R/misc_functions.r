@@ -1,8 +1,8 @@
 
 yaml_loads <- function(path, quote_everything = FALSE) {
   x <- readLines(path)
-  x <- gsub("\"", "'", x)
   if(quote_everything){
+    x <- gsub("\"", "'", x)
     for(i in 1:length(x)){
       if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {
         line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
