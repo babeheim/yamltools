@@ -1,20 +1,45 @@
 
-yaml_loads <- function(path, quote_everything = FALSE) {
-  x <- readLines(path)
-  if(quote_everything){
-    x <- gsub("\"", "'", x)
-    for(i in 1:length(x)){
-      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {
-        line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
-        line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
-        line_value <- gsub("^\\s+|\\s+$", "", line_value) 
-        line_value <- paste0("\"", line_value, "\"")
-        line_value <- gsub("\"'|'\"", "\"", line_value) 
-        x[i] <- paste0(line_key, ": ", line_value)
-      }
-    }
+
+name_job_lists <- function(job) names(job)[which(lapply(job, class) == "list")]
+
+name_subtables <- function(jar) {
+  jar %>% lapply(name_job_lists) %>% unlist() %>% unique() %>% sort()
+}
+
+list_is_object <- function(z) !is.null(names(z)) & !any(names(z) == "")
+list_is_array <- function(z) is.null(names(z))
+list_is_irregular <- function(z) !list_is_object(z) & !list_is_array(z)
+
+list_all_objects <- function(x) x %>% lapply(list_is_object) %>% unlist() %>% all()
+list_all_arrays <- function(x) x %>% lapply(list_is_array) %>% unlist() %>% all()
+list_regular <- function(x) list_all_arrays(x) | list_all_objects(x)
+
+
+validate_yamls <- function(path) {
+  my_yamls <- list.files(path, pattern="\\.yml|\\.yaml", full.names = TRUE)
+  for (i in 1:length(my_yamls)) {
+    print(my_yamls[i])
+    try(read_yaml(my_yamls[i]), silent = FALSE)
   }
-  res <- try(new <- yaml.load(paste(x, collapse="\n")), TRUE)
+}
+
+extract_subtables <- function(jar, subtables) {
+  outlist <- list()
+  for (j in 1:length(subtables)) {
+    out <- list()
+    for (i in 1:length(jar)) {
+      jar[[i]][[subtables[j]]] %>%
+        list.clean() %>%
+        bind_rows() %>%
+        as.data.frame() -> out[[i]] 
+    }
+    out %>% bind_rows() -> outlist[[subtables[j]]]
+  }
+  return(outlist)
+}
+
+yaml_loads <- function(path, silent = FALSE) {
+  res <- try(read_yaml(path), silent = silent)
   failed <- class(res)=="try-error"
   return(!failed)
 }
@@ -74,75 +99,59 @@ bad_stamp <- function(data) {
   return(out)
 }
 
+# just use list.clean()
 
-nullToNA <- function(x) {
-  x[sapply(x, is.null)] <- NA
-  return(x)
-}
-
-read_yaml2 <- function (file, to.json = FALSE, quote_everything = TRUE) {
-  x <- readLines(file, warn = FALSE)
-  x <- gsub("\"", "'", x)
-  x <- gsub(":  ", ": ", x)
-  if (quote_everything) {
-    for (i in 1:length(x)) {
-      if (length(grep(": ", x[i])) > 0 & length(grep(": $", x[i])) == 0) {        
-        line_key <- substr(x[i], 1, regexpr(": ", x[i]) - 1)
-        line_value <- substr(x[i], regexpr(": ", x[i]) + 1 , nchar(x[i]))
-        line_value <- gsub("^\\s+|\\s+$", "", line_value) 
-        line_value <- paste0("\"", line_value, "\"")
-        line_value <- gsub("\"'|'\"", "\"", line_value) 
-        x[i] <- paste0(line_key, ": ", line_value)
-      }
+flatten_entry <- function(data, entry) {
+  if (any(is.numeric(entry))) stop("cannot be numeric b/c those change!")
+  if (length(entry) == 1) {
+    if (is.character(entry)) entry <- which(names(data) == entry)
+    data <- append(data, data[[entry]], entry)
+    data[[entry]] <- NULL
+  } else {
+    for (j in 1:length(entry)) {
+      data <- flatten_entry(data, entry[j])
     }
   }
-  if (x[length(x)] != "") x <- c(x, "")
-  output <- yaml.load(paste(x, collapse = "\n"))
-  if (to.json) output <- jsonlite::toJSON(output, pretty = TRUE)
-  return(output)
+  return(data)
 }
 
-# bug: input_list is a list of length 1 b/c all other columns are empty
-
-vectorize <- function (input_list) {
-  output_list <- as.data.frame(input_list)
-  for (i in 1:ncol(output_list)) {
-    if (class(output_list[, i]) == "list") {
-      if (all(lapply(input_list[, i], class) != "data.frame")) {
-        empty <- which(lapply(input_list[, i], class) == 
-          "list")
-        if (length(empty) > 0) 
-          output_list[empty, i] <- NA
-        output_list[, i] <- unlist(nullToNA(output_list[, 
-          i]))
-      }
-    }
+purge_sublist_names <- function(data, sublists) {
+  for (j in sublists) {
+    names(data[[j]]) <- NULL
   }
-  return(output_list)
+  return(data)
 }
 
-rbind_list <- function( input_list ){
-  df1 <- vectorize(input_list[[1]])
-  df1 <- do.call(data.frame, df1)
-  for(i in 2:length(input_list)){
-    if (!is.null(input_list[[i]])){
-      df2 <- vectorize(input_list[[i]])
-      df2 <- do.call(data.frame, df2)
-      n1 <- colnames(df1)
-      n2 <- colnames(df2)
-      if( any(!n1 %in% n2) ){
-        new_cols <- n1[!n1 %in% n2]
-        df2 <- cbind(df2, matrix("", nrow=nrow(df2), ncol=length(new_cols)))
-        colnames(df2) <- c(n2, new_cols)
-      }
-      if( any(!n2 %in% n1) ){
-        new_cols <- n2[!n2 %in% n1]
-        df1 <- cbind(df1, matrix("", nrow=nrow(df1), ncol=length(new_cols)))
-        colnames(df1) <- c(n1, new_cols)
-      }
-      df1 <- rbind(df1, df2)
-    }
+extract_subtable_old <- function(data_list, subtable_name) {
+  out <- list()
+  for (i in 1:length(data_list)) {
+    data_list[[i]][[subtable_name]] %>% map(purrr::flatten) %>%
+    bind_rows() %>% mutate(instanceID = data_list[[i]]$meta$instanceID) %>%
+    as.data.frame() -> out[[i]] 
   }
-  df1 <- as.data.frame(df1, stringsAsFactors=FALSE)
-  return(df1)
+  out %>% bind_rows -> out
+  return(out)
+}
+
+unlist_plus <- function(z) {
+  if (is.list(z)) {
+    if (length(z) == 1) {
+      if (!is.list(z[[1]])) {
+        out <- unlist(z)
+      } else {
+        z[[1]] <- unlist_plus(z[[1]])
+        out <- z
+      }
+    } else if (length(z) > 1) {
+      for (i in 1:length(z)) {
+        z[[i]] <- unlist_plus(z[[i]])
+      }
+      out <- z
+    } else {
+      out <- z
+    }
+  } else {
+    out <- z
+  }
+  return(out)
 }

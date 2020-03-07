@@ -1,8 +1,10 @@
 
 - date: 2017-01-01
+  interview_num: 1  # this is the parent_key for 'entries'
   entries: 
     - amount: -3
       notes: blah
+      entry_num: 1  # this is the parent_key for 'passengers'
       passengers:
        - name: a
          age: 33
@@ -11,6 +13,7 @@
        - name: c
          age: 1
     - amount: -5
+      entry_num: 2  # this is the parent_key for 'passengers'
       notes: blah2
       passengers:
        - name: a
@@ -19,16 +22,20 @@
          age: 33
     - amount: -10
       notes: blah blah
+      entry_num: 3
 
 - date: 2017-01-02
+  interview_num: 2
   entries: 
     - amount: -3
       notes: blah
+      entry_num: 1
       passengers:
        - name: a
          age: 45
     - amount: -5
       notes: blah2
+      entry_num: 2
       passengers:
        - name: a
          age: 44
@@ -36,6 +43,7 @@
          age: 23
     - amount: -10
       notes: blah blah
+      entry_num: 3
       passengers:
        - name: a
          age: 44
@@ -45,19 +53,23 @@
          age: 22
 
 - date: 2017-01-03
+  interview_num: 3
   entries: 
     - amount: -3
       notes: blah
+      entry_num: 1
     - amount: -5
       notes: blah2
+      entry_num: 2
     - amount: -10
       notes: blah blah
+      entry_num: 3
       passengers:
        - name: a
          age: 44
        - name: b
          age: NA
        - name: c
-         age: 
+         age: 1
 
 

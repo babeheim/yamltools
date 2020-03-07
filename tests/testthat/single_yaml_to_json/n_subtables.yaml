@@ -1,5 +1,6 @@
 - date: 2017-01-01
   household: asdf
+  interview_num: 1
   residents:
     - name: a
       age: 3
@@ -17,6 +18,7 @@
 
 - date: 2017-01-02
   household: asdf
+  interview_num: 2
   residents:
     - name: a
       age: 3
@@ -34,6 +36,7 @@
 
 - date: 2017-01-03
   household: asdf
+  interview_num: 3
   residents:
     - name: a
       age: 3

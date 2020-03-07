@@ -1,0 +1,31 @@
+
+name         : main
+primary_key  : "interview_number"
+subtables:
+- name       : "entries"
+  primary_key: "entry_num"
+  subtables:
+  - name     : "passengers"
+
+schema <- list(
+  name = "main",
+  primary_key = "interview_number",
+  subtables = list(
+    list(
+      name = "entries",
+      primary_key = "entry_num",
+      subtables = list(
+        list(
+          name = "passengers"
+        )
+      )
+    )
+  )
+)
+
+# for each level of nesting:
+# 1. get the `name`s of its subtables
+# 2. list.remove those and make a table out of the data on that level
+# 3. store the `primary_key` value as the `parent_key` 
+# 4. store the subtable names as `subtables`
+# 5. run the extract_subtables argument with these parameters
