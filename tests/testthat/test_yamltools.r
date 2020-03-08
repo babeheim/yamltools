@@ -6,6 +6,13 @@
 
 simple_jar <- list(
   1,
+  10,
+  5,
+  3
+)
+
+difftype_jar <- list(
+  1,
   TRUE,
   "a",
   NA
@@ -131,7 +138,7 @@ test_that("we can combine jar jars", {
   expect_true(length(readings) == 8)
 
   # I also have a function that will detect if its a jar of jars, and if so, unpack it
-  readings <- unpack_jar_jar(simple_jar_jar)
+  readings <- unpack_jar_of_jars(simple_jar_jar)
   expect_true(is_jar(readings))
   expect_false(is_deep_list(readings))
   expect_true(length(readings) == 8)
@@ -156,7 +163,7 @@ test_that("we know what to do with a jar of jars and NULLs", {
     simple_jar
   )
 
-  readings <- unpack_jar_jar(null_jar_jar)
+  readings <- unpack_jar_of_jars(null_jar_jar)
   expect_true(is_jar(readings))
   expect_false(is_deep_list(readings))
   expect_true(length(readings) == 8)
@@ -209,16 +216,15 @@ observation_job <- list(
 
 # when we jar a depth-1 jobs, we need to make subtables for each jar or job field and the `answers` field. `biography` will be one-row-per-job, but the `answers` table will be one row per entry in the jar
 
-# we can identify these:
-name_job_lists(observation_job)
+test_that("we can identify the sublists inside our jar of observations", {
+  expect_identical(name_job_lists(observation_job), c("biography", "answers"))
+})
 
-# and individually select them
-subtables <- name_job_lists(observation_job)
-observation_job[[subtables[1]]]
-observation_job[[subtables[2]]]
-
-# and remove them
-remove_job_lists(observation_job)
+test_that("we can remove sublists inside our job", {
+  remove_job_lists(observation_job) -> reduced_observation_job
+  expect_false(is_deep_list(reduced_observation_job))
+  expect_true(length(reduced_observation_job) == 2)
+})
 
 # this means that we can quickly combine job jars into data frames, at least at the 'top level'
 
@@ -264,7 +270,7 @@ test_that("we can extract the biography job from the jar of observation jobs", {
   # but a more general solution requires we check to see if we need to unpack:
 
   observations_jar %>% purrr::map("biography") %>%
-    unpack_jar_jar() %>% bind_rows() %>% as.data.frame()  -> biography
+    unpack_jar_of_jars() %>% bind_rows() %>% as.data.frame()  -> biography
 
   expect_true(nrow(biography) == 2)
 
@@ -272,28 +278,24 @@ test_that("we can extract the biography job from the jar of observation jobs", {
   # tell it to purge them using the same function as above
 
   observations_jar %>% purrr::map("biography") %>%
-    unpack_jar_jar() %>% lapply(remove_job_lists) %>%
+    unpack_jar_of_jars() %>% remove_jar_sublists() %>%
     bind_rows() %>% as.data.frame() -> biography
 
   expect_true(nrow(biography) == 2)
 
   # all these operations are combined into "extract_subtable"
-
   observations_jar %>% extract_subtable("biography") -> biography
-
   expect_true(nrow(biography) == 2)
 
+  # however, im wondering if i shouldn't just define this like so:
+  observations_jar %>% extract_jar("biography") %>% stack_jobs() -> observations
+
+  # we can also do the same for the "answers" jar, which contains simple values
+  # simply by converting it into a job
+  observations_jar %>% extract_jar("answers") %>% stack_jobs() -> answers
+  expect_true(nrow(answers) == 8)
+
 })
-
-
-# Also, note that I have a solution for jars of jobs ("biography"), but not for
-# jars of simple values ("answers")
-# I think I'm going to have to *convert* all jars of simple values to jars of jobs,
-# then proceed as above
-# this is an outstanding problem...
-
-# observations_jar %>% purrr::map("answers") %>% ????
-
 
 # here's some more depth-1 examples
 
@@ -331,9 +333,26 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$residents) == 2)
   expect_true(ncol(db$residents) == 2)
 
-  residents_jar %>% extract_subtable("anthropometrics") -> db$anthropometrics
+  expect_equal(name_jar_sublists(residents_jar), c("anthropometrics", "lucky_numbers"))
+
+  residents_jar %>% extract_jar("anthropometrics") %>% stack_jobs() -> db$anthropometrics
   expect_true(nrow(db$anthropometrics) == 2)
   expect_true(ncol(db$anthropometrics) == 4)
+
+  residents_jar %>% extract_jar("lucky_numbers") %>% stack_jobs() -> db$lucky_numbers
+  expect_true(nrow(db$lucky_numbers) == 6)
+  expect_true(ncol(db$lucky_numbers) == 1)
+
+  # can we do all this at once?
+  residents_jar %>% unpack_jar("residents") -> db
+
+  expect_identical(names(db), c("residents", "anthropometrics", "lucky_numbers"))
+  expect_true(nrow(db$residents) == 2)
+  expect_true(ncol(db$residents) == 2)
+  expect_true(nrow(db$anthropometrics) == 2)
+  expect_true(ncol(db$anthropometrics) == 4)
+  expect_true(nrow(db$lucky_numbers) == 6)
+  expect_true(ncol(db$lucky_numbers) == 1)
 
 })
 
@@ -391,18 +410,6 @@ households_jar <- list(
 
 test_that("we can unpack the jar of households", {
 
-  db <- list()
-
-  households_jar %>% stack_jobs() -> db$households
-  expect_true(nrow(db$households) == 5)
-
-  households_jar %>% extract_subtable("gps") -> db$gps
-  expect_true(nrow(db$gps) == 5)
-
-  households_jar %>% extract_subtable("residents") -> db$residents
-  expect_true(nrow(db$residents) == 15)
-  
-  # we can also do all the above automatically
   households_jar %>% unpack_jar("households") -> db
   expect_true(nrow(db$households) == 5)
   expect_true(nrow(db$gps) == 5)
@@ -502,21 +509,9 @@ test_that("we can extract household-level and resident-level data from the jar o
   expect_true(nrow(db$households) == 5)
   expect_true(nrow(db$gps) == 5)
   expect_true(nrow(db$residents) == 15)
-
-})
-
-# to get at the pets data, we need another jar, this time of residents
-
-test_that("we can extract pet-level data from the jar of households", {
-
-  households_jar %>% map("residents") %>% unpack_jar_jar() -> residents_jar
-  residents_jar %>% unpack_jar("residents") -> db
   expect_true(nrow(db$pets) == 15)
 
 })
-
-# This is great, but I need a way to do this automatically and therefore recursively
-# jars!!
 
 # depth2 jar with variable subtables
 
@@ -595,9 +590,13 @@ int_obj <- list(
   )
 )
 
-
-
-
+test_that("a complex interview can be tamed!", {
+  int_obj %>% unpack_jar("interviews") -> db
+  expect_true(nrow(db$interviews) == 2)
+  expect_true(nrow(db$children) == 4)
+  expect_true(nrow(db$pets) == 3)
+  expect_true(nrow(db$readings) == 6)
+})
 
 
 # use unlist_plus to eliminate all unnecessary lists
