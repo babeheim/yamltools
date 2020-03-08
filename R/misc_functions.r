@@ -110,16 +110,16 @@ extract_jar <- function(jar, subjar) {
   jar %>% purrr::map(subjar) %>% unpack_jar_of_jars() %>% convert_simple_jar()
 }
 
-unpack_jar_double <- function(jar, label = "main", df_list = list()) {
-  jar %>% stack_jobs() -> df_list[[label]]
+unpack_jar_double <- function(jar, label = "main", out = list()) {
+  jar %>% stack_jobs() -> out[[label]]
   subtables <- name_jar_sublists(jar)
   if (length(subtables) > 0) {
     for (i in 1:length(subtables)) {
       jar %>% extract_jar(subtables[i]) %>%
-        stack_jobs() -> df_list[[subtables[i]]]
+        stack_jobs() -> out[[subtables[i]]]
     }
   }
-  return(df_list)
+  return(out)
 }
 
 unpack_jar <- function(jar, label = "main", out = list()) {
