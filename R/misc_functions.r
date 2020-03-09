@@ -110,7 +110,9 @@ extract_jar <- function(jar, subjar) {
   jar %>% purrr::map(subjar) %>% unpack_jar_of_jars() %>% convert_simple_jar()
 }
 
-unpack_jar_double <- function(jar, label = "main", out = list()) {
+unpack_jar_double <- function(jar, label = NA, out = list()) {
+  if (is.na(label)) label <- deparse(substitute(jar))
+  label <- deparse(substitute(jar))
   jar %>% stack_jobs() -> out[[label]]
   subtables <- name_jar_sublists(jar)
   if (length(subtables) > 0) {
@@ -122,7 +124,8 @@ unpack_jar_double <- function(jar, label = "main", out = list()) {
   return(out)
 }
 
-unpack_jar <- function(jar, label = "main", out = list()) {
+unpack_jar <- function(jar, label = NA, out = list()) {
+  if (is.na(label)) label <- deparse(substitute(jar))
   jar %>% stack_jobs() -> out[[label]]
   subtables <- name_jar_sublists(jar)
   if (length(subtables) > 0) {
@@ -138,12 +141,10 @@ unpack_jar <- function(jar, label = "main", out = list()) {
 
 
 
-
-
 ####################
 
-
 # we need these two to extract subtables
+# no, we don't. extract_subtables is deprecated!
 
 extract_subtable <- function(jar, subtable) {
   jar %>% purrr::map(subtable) %>%
@@ -209,6 +210,8 @@ extract_subtables_old <- function(jar, subtables) {
   }
   return(outlist)
 }
+
+################
 
 validate_yamls <- function(path) {
   my_yamls <- list.files(path, pattern="\\.yml|\\.yaml", full.names = TRUE)

@@ -354,6 +354,18 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$lucky_numbers) == 6)
   expect_true(ncol(db$lucky_numbers) == 1)
 
+  residents <- residents_jar
+  db <- unpack_jar(residents)
+
+  expect_identical(names(db), c("residents", "anthropometrics", "lucky_numbers"))
+  expect_true(nrow(db$residents) == 2)
+  expect_true(ncol(db$residents) == 2)
+  expect_true(nrow(db$anthropometrics) == 2)
+  expect_true(ncol(db$anthropometrics) == 4)
+  expect_true(nrow(db$lucky_numbers) == 6)
+  expect_true(ncol(db$lucky_numbers) == 1)
+
+
 })
 
 # now a depth-2 job:
@@ -596,7 +608,31 @@ test_that("a complex interview can be tamed!", {
   expect_true(nrow(db$children) == 4)
   expect_true(nrow(db$pets) == 3)
   expect_true(nrow(db$readings) == 6)
+
+  interviews <- int_obj
+
+  db <- unpack_jar(interviews)
+  expect_true(nrow(db$interviews) == 2)
+  expect_true(nrow(db$children) == 4)
+  expect_true(nrow(db$pets) == 3)
+  expect_true(nrow(db$readings) == 6)
+
 })
+
+# it would be nice if i didn't have to supply the name "interviews" to the top
+# level of unpack_jar...
+
+# this is great, but incomplete
+# the problem is, we need to inherit information from parent to offspring tables
+# basically we have two options:
+# 1. create some unique keys at each level that get inherited down, e.g. _k _pk, _ppk, _pppk
+# 2. supply some kind of schema which determines which variables get inherited down
+
+# we might be able to combine these two approaches
+# either in the list itself, or after the fact
+# basically the problem now is we don't have a way to say "pets is nested in residents"
+# "residents is nested in households"
+# 
 
 
 # use unlist_plus to eliminate all unnecessary lists
