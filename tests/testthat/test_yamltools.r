@@ -550,11 +550,11 @@ test_that("we can extract our data from the jar of residents", {
 
   residents_jar %>% extract_jar("anthropometrics") %>% stack_jobs() -> db$anthropometrics
   expect_true(nrow(db$anthropometrics) == 2)
-  expect_true(ncol(db$anthropometrics) == 4)
+  expect_true(ncol(db$anthropometrics) == 5)
 
   residents_jar %>% extract_jar("lucky_numbers") %>% stack_jobs() -> db$lucky_numbers
   expect_true(nrow(db$lucky_numbers) == 6)
-  expect_true(ncol(db$lucky_numbers) == 1)
+  expect_true(ncol(db$lucky_numbers) == 2)
 
   # can we do all this at once?
   residents_jar %>% unpack_jar("residents") -> db
@@ -563,9 +563,9 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$residents) == 2)
   expect_true(ncol(db$residents) == 2)
   expect_true(nrow(db$anthropometrics) == 2)
-  expect_true(ncol(db$anthropometrics) == 5)
+  expect_true(ncol(db$anthropometrics) == 6)
   expect_true(nrow(db$lucky_numbers) == 6)
-  expect_true(ncol(db$lucky_numbers) == 2)
+  expect_true(ncol(db$lucky_numbers) == 3)
 
   residents <- residents_jar
   db <- unpack_jar(residents)
@@ -574,9 +574,9 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$residents) == 2)
   expect_true(ncol(db$residents) == 2)
   expect_true(nrow(db$anthropometrics) == 2)
-  expect_true(ncol(db$anthropometrics) == 5)
+  expect_true(ncol(db$anthropometrics) == 6)
   expect_true(nrow(db$lucky_numbers) == 6)
-  expect_true(ncol(db$lucky_numbers) == 2)
+  expect_true(ncol(db$lucky_numbers) == 3)
 
 })
 
@@ -831,85 +831,14 @@ test_that("a complex interview can be tamed!", {
 
 })
 
-# this is great, but incomplete
-# the problem is, we need to inherit information from parent to offspring tables
-# basically we have two options:
-# 1. create some unique keys at each level that get inherited down, e.g. _k _pk, _ppk, _pppk
-# 2. supply some kind of schema which determines which variables get inherited down
-
-# we might be able to combine these two approaches
-# either in the list itself, or after the fact
-# basically the problem now is we don't have a way to say "pets is nested in residents"
-# "residents is nested in households"
-
-# ok, here's what we do:
-# 1. take the parent table as a new variable, parent_table
-# 2. add a parent_index_key as a way to address the row the parent table
-
-# the real question is, do we do this before, or after, we unpack?
-# we only really lose the relationships from the nesting when we UNNEST
-
-# use unlist_plus to eliminate all unnecessary lists
-# but check that against the auto-load features
-
-# detect and extract the names object's subtables automatically
-
-# cause a keyed object to inherit one, some,
-# or all of the keys of a parent object
-
-# four key situations:
-# - array with only string, numeric, or logical values  e.g. becomes a subtable
-# - array with lists, but only objects e.g.
-# anything that becomes a table or subtable, each entry becomes a row
-# - object with lists that are arrays e.g.
-# pretty much any subtable connected to a parent
-# - object with lists that are objects e.g.
-# a grouped set of object-level variables
-
-# cause a keyed array of strings, numerics or logicals
-# to become an array of objects, each taking as key the
-# key of the array
-
-# (recursively) cause a keyed array of objects to inherit one some
-# or all of the keys of a parent object
-# (as a heuristic rule it could take the *first* key
-# in the parent object, but that's a hack)
-
-# recursively step through an arbitrary nested list,
-# either depth first or top first, and pull out the
-# tables of each level recursively.
-
-# purge an array of objects of its lists, so we can list.stack them fine
+# it works!
 
 
-# ah, map produces a jar sometimes
-# and an array of jars other times!
-
-
-# at this point we have to assume all keys are present
-# ...in other words, no mutate here!
-
-# subtables <- name_subtables(object_array)
-# object_array %>% unpack_jars() %>% purge_subtables() %>% list.stack()
-# object_array %>% extract_subtables(subtables)
-
-# for (i in 1:length(subtables)) {
-#   object_array2 <- purrr::map(object_array, subtables[i]) %>% unpack_jars()
-#   subtables2 <- name_subtables(object_array2)
-#   object_array2 %>% purge_subtables() %>% list.stack()
-#   extract_subtables(object_array2, subtables2)
-# }
-
-# almost there!
-
-# for an array of objects go into objects,
-# and for every array or object therein identify
-# "sublists"
-# if there is an array of objcets inside this list,
-# recurse the above operation downwards
-# if i can get this working, arbitrarily (close!)
-# the only thing left is identifying the key
-
+# some weird situations
+# 1. the job as only one entry
+# 2. the jobs in the jar have a variable number of entries
+# 3. some of the values are NA
+# 4. the same key has different types across jobs, e.g. logical and character, logical and numeric, etc.
 
 
 
