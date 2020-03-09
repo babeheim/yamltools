@@ -2,7 +2,7 @@
 
 # detect when the data_list entries are different structures 
 
-# lets start with JSON's recursive building blocks, the array and object:
+# lets start with JSON's recursive building blocks, the JSON array (jar) and JSON object (job):
 
 simple_jar <- list(
   1,
@@ -11,23 +11,25 @@ simple_jar <- list(
   3
 )
 
-difftype_jar <- list(
-  1,
-  TRUE,
-  "a",
-  NA
-)
-
 simple_job <- list(
   name = "B",
   age = 38
 )
+
+# in R, these are called named and unnamed lists.
+# However, not all lists in R meet this, because the language allows
+# partially-named lists, which here I'll call irregulars
+# irregular lists should never, ever happen in our ecodata workflow
+# if we detect one it is an immediate and full stop
+# we cannot write these in JSON either
 
 irregular_list <- list(
   name = "B",
   age = 38,
   5
 )
+
+# my yamltools package has a set of tools for identifying different list types
 
 test_that("we can differentiate JSON arrays (i.e. unnamed lists, or 'jars'),
   JSON objects (i.e. named list, or 'jobs') and irregular R lists, ", {
@@ -50,15 +52,19 @@ test_that("we can differentiate JSON arrays (i.e. unnamed lists, or 'jars'),
 
 })
 
-# we might call all these 'depth-0' since they do not
-# contain either jars or jobs as their values (in R, no lists!)
+# jars can have many things as values, including jobs and other jars.
+# however, all values except for those are what i call 'simple' values
+# numeric, logical, character and NULL class
 
-# irregular lists should never, ever happen in our ecodata workflow
-# if we detect one it is an immediate and full stop
+difftype_jar <- list(
+  1,
+  TRUE,
+  "a",
+  NULL
+)
 
-# I think there's a case to be made that jars should not count towards depth
-
-# a depth-1 jar, then, contains either a jar or a job
+# a jar of jobs is one common JSON value we deal with
+# another is a jar of other jars, of indeterminate underlying structure
 
 simple_job_jar <- list(
   simple_job,
@@ -69,6 +75,10 @@ simple_jar_jar <- list(
   simple_jar,
   simple_jar
 )
+
+# we can also imagine a jar with heterogeneous contents, which we'll called 'mixed'
+# while mixed jars can be written in JSON, they should never happen in our workflow
+# and indicate a malformed data structure
 
 mixed_jar1 <- list(
   simple_job,
@@ -87,20 +97,25 @@ mixed_jar3 <- list(
 
 # we can detect these using some new tools:
 
-test_that("we can differentiate all of these", {
+test_that("we can differentiate jars of JSON arrays ('jar jars'),
+  jars of JSON objects ('job jars'),
+  jars holding a mixture of jobs and jars", {
 
+  expect_false(is_jar_of_jobs(simple_jar))
   expect_true(is_jar_of_jobs(simple_job_jar))
   expect_false(is_jar_of_jobs(simple_jar_jar))
   expect_false(is_jar_of_jobs(mixed_jar1))
   expect_false(is_jar_of_jobs(mixed_jar2))
   expect_false(is_jar_of_jobs(mixed_jar3))
 
+  expect_false(is_jar_of_jobs(simple_jar))
   expect_false(is_jar_of_jars(simple_job_jar))
   expect_true(is_jar_of_jars(simple_jar_jar))
   expect_false(is_jar_of_jars(mixed_jar1))
   expect_false(is_jar_of_jars(mixed_jar2))
   expect_false(is_jar_of_jars(mixed_jar3))
 
+  expect_false(is_jar_of_jobs(simple_jar))
   expect_false(is_mixed_jar(simple_job_jar))
   expect_false(is_mixed_jar(simple_jar_jar))
   expect_true(is_mixed_jar(mixed_jar1))
@@ -126,11 +141,75 @@ test_that("we can combine job jars into data frames", {
 
 })
 
-# a jar jar is only really encountered when we have multiple input files (which load as jars)
-# that themselves contain jars of jobs
-# its legit but we solve but flattening
+# jars of jobs might also appear as a "subjar" when we map them out of a higher-level jar of jobs
+# specifically, if a job is a value inside another job
+# this is a case in which we would want to inherit the parent index
 
-test_that("we can combine jar jars", {
+test_that("we can inherit the index in a jar of jobs", {
+
+  # imagine this is the output of a map(subjar) call
+  simple_job_jar %>% prepend_parent_index() %>% list.stack() -> individuals
+  expect_true(nrow(individuals) == 2)
+  expect_true(ncol(individuals) == 3)
+
+})
+
+# this is exactly the kind of situation in which we have to worry about NULL entries though
+
+test_that("jars of jobs can handle NULL entries", {
+
+  null_job_jar <- list(
+    simple_job,
+    NULL,
+    simple_job
+  )
+
+  null_job_jar %>% prepend_parent_index() %>% list.stack() -> individuals
+  expect_true(nrow(individuals) == 2)
+  expect_true(ncol(individuals) == 3)
+
+})
+
+# so much for jars of jobs
+# what about jars of simple values?
+## in our workflow a jar of simple values must become a subtable
+# or be turned into a concatenated string
+
+# we accomplish the former by converting it into a jar of jobs
+
+test_that("we can convert simple jars to jars of jobs", {
+
+  # this is accomplished by convert_simple_values_to_jobs
+  x <- 5
+  x2 <- convert_simple_values_to_jobs(x)
+  expect_true(is_job(x2))
+
+  x <- "test"
+  x2 <- convert_simple_values_to_jobs(x)
+  expect_true(is_job(x2))
+
+  x <- TRUE
+  x2 <- convert_simple_values_to_jobs(x)
+  expect_true(is_job(x2))
+
+  x <- NULL
+  x2 <- convert_simple_values_to_jobs(x)
+  expect_true(is_job(x2))
+
+  # we can apply this operation to a whole jar of simple values by convert_simple_jar
+  jar_of_jobs <- convert_simple_jar(simple_jar)
+  expect_true(is_jar_of_jobs(jar_of_jobs))
+
+  jar_of_jobs <- convert_simple_jar(difftype_jar)
+  expect_true(is_jar_of_jobs(jar_of_jobs))
+
+})
+
+# the final kind of jar is a jar of jars
+# this is a legit occurance in our work
+# and is the normal consequence of mapping out a subjar
+
+test_that("we can combine a jar of jars into one jar", {
 
   readings <- flatten(simple_jar_jar)
   expect_true(is_jar(readings))
@@ -144,6 +223,11 @@ test_that("we can combine jar jars", {
   expect_true(length(readings) == 8)
   # this has the advantage of being usable, even if we don't know what's in the jar
 
+})
+
+
+test_that("a jar of jars still behaves even with nulls inside", {
+
   # note we can also use rlist::list.flatten here, but this flattens *all* sublevels
   # so does not generalize as a solution
   readings <- list.flatten(simple_jar_jar)
@@ -151,11 +235,138 @@ test_that("we can combine jar jars", {
   expect_false(is_deep_list(readings))
   expect_true(length(readings) == 8)
 
+  null_jar_jar <- list(
+    simple_jar,
+    NULL,
+    simple_jar
+  )
+
+  expect_true(length(null_jar_jar) == 3)
+  expect_true(is_jar(null_jar_jar))
+  expect_true(is_jar_of_jars(null_jar_jar))
+  expect_true(is_deep_list(null_jar_jar))
+
+  # we can combine jars of jars into one single jar with unpack_jar_of_jars
+  readings <- unpack_jar_of_jars(null_jar_jar)
+  expect_true(length(readings) == 8)
+  expect_true(is_jar(readings))
+  expect_false(is_deep_list(readings))
+
+  # this still works if we want to unpack a jar made up of jars of jobs and NULLs
+
+  null_jar_jar2 <- list(
+    simple_job_jar,
+    NULL,
+    simple_job_jar
+  )
+
+  expect_true(length(null_jar_jar2) == 3)
+  expect_true(is_jar(null_jar_jar2))
+  expect_true(is_jar_of_jars(null_jar_jar2))
+  expect_true(is_deep_list(null_jar_jar2))
+
+  jar_of_jobs <- unpack_jar_of_jars(null_jar_jar2)
+  expect_true(length(jar_of_jobs) == 4)
+  expect_true(is_jar(jar_of_jobs))
+  expect_true(is_deep_list(jar_of_jobs)) # the only difference here
+
+  # what about a jar of jars, each of which is a jar of jars?
+
+  jar_jar_jar <- list(
+    simple_jar_jar,
+    simple_jar_jar
+  )
+
+  expect_true(length(jar_jar_jar) == 2)
+  expect_true(is_jar(jar_jar_jar))
+  expect_true(is_jar_of_jars(jar_jar_jar))
+  expect_true(is_deep_list(jar_jar_jar))
+
+  expect_warning(jar_of_jars <- unpack_jar_of_jars(jar_jar_jar))
+  # note that this situation should technically never happen, so I've added a warning
+  expect_true(is_jar_of_jars(jar_of_jars))
+
+  # though we allow some NULL in the above operations
+  # a perverse jar would be filled with NULL
+
+  null_jar <- list(
+    NULL,
+    NULL
+  )
+
+  expect_true(length(null_jar) == 2)
+  expect_true(is_jar(null_jar))
+  expect_false(is_jar_of_jars(null_jar))
+  expect_false(is_deep_list(null_jar))
+
+  # our unpack operation should be saavy enough not to do anything
+  expect_identical(unpack_jar_of_jars(null_jar), null_jar)
+
 })
 
-# in practice, not all jar jars will contain jars, sometimes it will be nulls too!
+# having converted the jar of jars, we then either have a jar of jobs or jar of simple objects
+# so we can handle it as above
 
-test_that("we know what to do with a jar of jars and NULLs", {
+# in practice, not all jars of jars will contain jars, sometimes it will be nulls too!
+# when we do the mapping, for example, not every job in our array will have that job or jar inside it
+# the solution here is to use list.clean(), which has been incorporated into
+# unpack_jar_of_jars
+
+# in practice, we should not encounter other kinds of mixed jars
+# as this implies a mistake in our data organization
+# **if detected, we should return an error**
+
+# there's one issue: how do we inherit parent_index values to jars of jars?
+# especially if they have NULLs?
+
+# here's the four situations I have to solve, in increasing complexity:
+
+test_that("we can prepend the parent table index into various kinds of jars", {
+
+  simple_jar_jar <- list(
+    simple_jar,
+    simple_jar
+  )
+
+  # our prepend function does nothing unless its working on a jar of jars
+  # or, occasionally, a jar of jobs
+  
+  # doesn't work on jars of jars
+  expect_identical(simple_jar_jar, prepend_parent_index(simple_jar_jar))
+
+  simple_jar_jar %>% lapply(convert_simple_jar) %>%
+    prepend_parent_index() %>% unpack_jar_of_jars() %>% list.stack() -> good
+
+  expect_equal(good$parent_table_index, c(1, 1, 1, 1, 2, 2, 2, 2))
+  expect_true(nrow(good) == 8)
+  expect_true(ncol(good) == 2)
+
+  # if its a jar of simple jars, we cannot use lapply
+  simple_jar_jar %>% lapply(convert_simple_jar) %>%
+    lapply(prepend_parent_index) %>% unpack_jar_of_jars() %>% list.stack() -> bad
+  expect_false(identical(good$parent_table_index, bad$parent_table_index))
+
+  jar_of_job_jars <- list(
+    list(
+      simple_job,
+      simple_job
+    ),
+    list(
+      simple_job
+    ),
+    list(
+      simple_job,
+      simple_job,
+      simple_job
+    )
+  )
+
+  jar_of_job_jars %>% lapply(convert_simple_jar) %>%
+    prepend_parent_index() %>% unpack_jar_of_jars() %>% list.stack() -> dat
+
+  expect_equal(dat$parent_table_index, c(1, 1, 2, 3, 3, 3))
+  expect_true(nrow(dat) == 6)
+  expect_true(ncol(dat) == 3)
 
   null_jar_jar <- list(
     simple_jar,
@@ -163,47 +374,41 @@ test_that("we know what to do with a jar of jars and NULLs", {
     simple_jar
   )
 
-  readings <- unpack_jar_of_jars(null_jar_jar)
-  expect_true(is_jar(readings))
-  expect_false(is_deep_list(readings))
-  expect_true(length(readings) == 8)
+  null_jar_jar %>% lapply(convert_simple_jar) %>%
+    prepend_parent_index() %>% unpack_jar_of_jars() %>% list.stack() -> good
+
+  expect_equal(good$parent_table_index, c(1, 1, 1, 1, 3, 3, 3, 3))
+  expect_true(nrow(good) == 8)
+  expect_true(ncol(good) == 2)
+
+  jar_of_job_jars_nulls <- list(
+    list(
+      simple_job,
+      simple_job
+    ),
+    NULL,
+    list(
+      simple_job
+    ),
+    NULL,
+    list(
+      simple_job,
+      simple_job,
+      simple_job
+    )
+  )
+
+  jar_of_job_jars_nulls %>% lapply(convert_simple_jar) %>%
+    prepend_parent_index() %>% unpack_jar_of_jars() %>% list.stack() -> dat
+
+  expect_equal(dat$parent_table_index, c(1, 1, 3, 5, 5, 5))
+  expect_true(nrow(dat) == 6)
+  expect_true(ncol(dat) == 3)
 
 })
 
-# in practice, we should not encounter mixed jars except with NULLs
-# still need to think this thru...
-# as this implies a mistake in our data organization
-# **if detected, we should return an error**
 
-test_that("we can differentiate jars of JSON arrays ('jar jars'),
-  jars of JSON objects ('job jars'),
-  jars holding a mixture of jobs and jars", {
-
-  expect_true(is_deep_list(simple_job_jar))
-  expect_true(is_deep_list(simple_jar_jar))
-  expect_true(is_deep_list(mixed_jar1))
-  expect_true(is_deep_list(mixed_jar2))
-  expect_true(is_deep_list(mixed_jar3))
-
-  expect_true(is_jar_of_jobs(simple_job_jar))
-  expect_false(is_jar_of_jobs(simple_jar_jar))
-  expect_false(is_jar_of_jobs(mixed_jar1))
-  expect_false(is_jar_of_jobs(mixed_jar2))
-  expect_false(is_jar_of_jobs(mixed_jar3))
-
-  expect_false(is_jar_of_jars(simple_job_jar))
-  expect_true(is_jar_of_jars(simple_jar_jar))
-  expect_false(is_jar_of_jars(mixed_jar1))
-  expect_false(is_jar_of_jars(mixed_jar2))
-  expect_false(is_jar_of_jars(mixed_jar3))
-
-  expect_false(is_mixed_jar(simple_job_jar))
-  expect_false(is_mixed_jar(simple_jar_jar))
-  expect_true(is_mixed_jar(mixed_jar1))
-  expect_true(is_mixed_jar(mixed_jar2))
-  expect_true(is_mixed_jar(mixed_jar3))
-
-})
+## applied examples
 
 # its also possible to have depth-1 jobs, but only if they contain a depth-0 jar or job
 
@@ -283,10 +488,6 @@ test_that("we can extract the biography job from the jar of observation jobs", {
 
   expect_true(nrow(biography) == 2)
 
-  # all these operations are combined into "extract_subtable"
-  observations_jar %>% extract_subtable("biography") -> biography
-  expect_true(nrow(biography) == 2)
-
   # however, im wondering if i shouldn't just define this like so:
   observations_jar %>% extract_jar("biography") %>% stack_jobs() -> observations
 
@@ -295,7 +496,19 @@ test_that("we can extract the biography job from the jar of observation jobs", {
   observations_jar %>% extract_jar("answers") %>% stack_jobs() -> answers
   expect_true(nrow(answers) == 8)
 
+  # and we can do both levels simultaneously with unpack_jar()
+
+  db <- unpack_jar(observations_jar, label = "observations")
+
 })
+
+# this is where we need to start worrrying about the inheritance of information
+# across levels
+# by unpacking the jar, we have lost the ability to say which values came from which observations
+# likewise with the biography
+
+# so we need to tell it...
+
 
 # here's some more depth-1 examples
 
@@ -350,9 +563,9 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$residents) == 2)
   expect_true(ncol(db$residents) == 2)
   expect_true(nrow(db$anthropometrics) == 2)
-  expect_true(ncol(db$anthropometrics) == 4)
+  expect_true(ncol(db$anthropometrics) == 5)
   expect_true(nrow(db$lucky_numbers) == 6)
-  expect_true(ncol(db$lucky_numbers) == 1)
+  expect_true(ncol(db$lucky_numbers) == 2)
 
   residents <- residents_jar
   db <- unpack_jar(residents)
@@ -361,10 +574,9 @@ test_that("we can extract our data from the jar of residents", {
   expect_true(nrow(db$residents) == 2)
   expect_true(ncol(db$residents) == 2)
   expect_true(nrow(db$anthropometrics) == 2)
-  expect_true(ncol(db$anthropometrics) == 4)
+  expect_true(ncol(db$anthropometrics) == 5)
   expect_true(nrow(db$lucky_numbers) == 6)
-  expect_true(ncol(db$lucky_numbers) == 1)
-
+  expect_true(ncol(db$lucky_numbers) == 2)
 
 })
 
@@ -619,9 +831,6 @@ test_that("a complex interview can be tamed!", {
 
 })
 
-# it would be nice if i didn't have to supply the name "interviews" to the top
-# level of unpack_jar...
-
 # this is great, but incomplete
 # the problem is, we need to inherit information from parent to offspring tables
 # basically we have two options:
@@ -632,8 +841,13 @@ test_that("a complex interview can be tamed!", {
 # either in the list itself, or after the fact
 # basically the problem now is we don't have a way to say "pets is nested in residents"
 # "residents is nested in households"
-# 
 
+# ok, here's what we do:
+# 1. take the parent table as a new variable, parent_table
+# 2. add a parent_index_key as a way to address the row the parent table
+
+# the real question is, do we do this before, or after, we unpack?
+# we only really lose the relationships from the nesting when we UNNEST
 
 # use unlist_plus to eliminate all unnecessary lists
 # but check that against the auto-load features

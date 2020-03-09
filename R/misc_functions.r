@@ -21,10 +21,25 @@ is_job <- function(l) class(l) == "list" & !is.null(names(l)) & !any(names(l) ==
 is_jar <- function(l) class(l) == "list" & is.null(names(l))
 is_irregular_list <- function(z) !is_job(z) & !is_jar(z)
 
-is_deep_list <- function(x) any(lapply(x, class) == "list")
+is_jar_or_null <- function(l) is_jar(l) | is.null(l)
+is_job_or_null <- function(l) is_job(l) | is.null(l)
 
-is_jar_of_jobs <- function(x) x %>% lapply(is_job) %>% unlist() %>% all()
-is_jar_of_jars <- function(x) x %>% lapply(is_jar) %>% unlist() %>% all()
+is_jar_of_jobs <- function(x) {
+  x %>% lapply(is_job_or_null) %>% unlist() %>% all() -> all_jobs_or_nulls
+  x %>% lapply(is.null) %>% unlist() %>% all() -> all_nulls
+  all_jobs_or_nulls & !all_nulls
+}
+
+is_jar_of_jars <- function(x) {
+  x %>% lapply(is_jar_or_null) %>% unlist() %>% all() -> all_jars_or_nulls
+  x %>% lapply(is.null) %>% unlist() %>% all() -> all_nulls
+  all_jars_or_nulls & !all_nulls
+}
+
+is_deep_list <- function(x) any(lapply(x, class) == "list")
+# some entries can be NULL in a jar of jars, but not all
+# i need to somehow know
+
 is_mixed_jar <- function(x) is_deep_list(x) & !is_jar_of_jars(x) & !is_jar_of_jobs(x)
 
 # seems like a recursive use of flatten could improve?
@@ -87,12 +102,6 @@ stack_jobs <- function(jar) {
 
 # these are needed to extract jars
 
-unpack_jar_of_jars <- function(jar_jar) {
-  jar_jar %>% classify_json_values() %>% list.all(. %in% c("jar", "NULL")) -> needs_unpacking
-  if (needs_unpacking) jar_jar %>% list.clean() %>% flatten() -> jar_jar
-  return(jar_jar)
-}
-
 convert_simple_values_to_jobs <- function(value, column_name = "value") {
   out <- list(value)
   names(out) <- column_name
@@ -104,6 +113,46 @@ convert_simple_jar <- function(jar, column_name = "value") {
     jar %>% lapply(convert_simple_values_to_jobs, column_name = column_name) -> jar
   }
   return(jar)
+}
+
+prepend_parent_index <- function(jar) {
+  if (is_jar(jar)) {
+    if (is_jar_of_jars(jar)) {
+      for (i in 1:length(jar)) {
+        if (is_jar_of_jobs(jar[[i]])) {
+          jar[[i]] <- lapply(jar[[i]],
+            function(z) list.prepend(z, parent_table_index = i))
+        }
+      }
+    }
+    # this below is only an edge case, happens sometimes but can happen
+    if (is_jar_of_jobs(jar)) {
+      for (i in 1:length(jar)) {
+        if (is_job(jar[[i]])) {
+          jar[[i]] <- list.prepend(jar[[i]], parent_table_index = i)
+        }
+      }
+    }
+  }
+  return(jar)
+}
+
+unpack_jar_of_jars <- function(jar) {
+  output_jar <- jar
+  if (is_jar_of_jars(jar)) {
+    jar %>% classify_json_values() %>% list.all(. %in% c("jar", "NULL")) -> needs_unpacking
+    if (needs_unpacking) jar %>% list.clean() %>% flatten() -> output_jar
+    if (is_jar_of_jars(output_jar)) warning("output is also a jar of jars; that shouldn't happen!")
+  }
+  return(output_jar)
+}
+
+# i need to pass the parent_index_key as a new variable here
+# and then I'm basically done!
+
+extract_jar2 <- function(jar, subjar) {
+  jar %>% purrr::map(subjar) %>% lapply(convert_simple_jar) %>%
+    prepend_parent_index() %>% unpack_jar_of_jars()
 }
 
 extract_jar <- function(jar, subjar) {
@@ -132,6 +181,7 @@ unpack_jar <- function(jar, label = NA, out = list()) {
     for (i in 1:length(subtables)) {
       jar %>% extract_jar(subtables[i]) %>%
          unpack_jar(label = subtables[i], out = out) -> out
+      out[[subtables[i]]] %>% mutate(parent_table = label) -> out[[subtables[i]]]
     }
   }
   return(out)
