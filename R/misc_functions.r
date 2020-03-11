@@ -1,4 +1,17 @@
 
+convert_to_characters <- function(data) {
+  out <- data
+  for (i in 1:length(data)) {
+    if (class(data[[i]]) == "list") {
+      out[[i]] <- convert_to_characters(data[[i]])
+    } else {
+      out[[i]] <- as.character(data[[i]])
+    }
+  }
+  return(out)
+}
+
+
 classify_json_values <- function(x) {
   class_list <- lapply(x, class)
   for (i in 1:length(class_list)) {
@@ -84,8 +97,9 @@ remove_jar_sublists_fast <- function(jar) {
   return(jar)
 }
 
+# list.stack is my replacement for bind_rows!
 stack_jobs <- function(jar) {
-  jar %>% remove_jar_sublists() %>% list.stack()
+  jar %>% remove_jar_sublists() %>% convert_missing_to_NA() %>% list.stack(fill = TRUE)
 }
 
 convert_simple_values_to_jobs <- function(value, column_name = "value") {
@@ -123,6 +137,7 @@ prepend_parent_index <- function(jar) {
   return(jar)
 }
 
+# i really need to work on this language...sigh...
 unpack_jar_of_jars <- function(jar) {
   output_jar <- jar
   if (is_jar_of_jars(jar)) {
@@ -138,6 +153,7 @@ extract_jar <- function(jar, subjar) {
     prepend_parent_index() %>% unpack_jar_of_jars()
 }
 
+# this could be useful for debugging purposes...
 unpack_jar_double <- function(jar, label = NA, out = list()) {
   if (is.na(label)) label <- deparse(substitute(jar))
   label <- deparse(substitute(jar))
@@ -152,6 +168,35 @@ unpack_jar_double <- function(jar, label = NA, out = list()) {
   return(out)
 }
 
+convert_missing_to_null <- function(data) {
+  for (i in 1:length(data)) {
+    if (class(data[[i]]) == "list") {
+      data[[i]] <- convert_missing_to_null(data[[i]])
+    } else {
+      if (length(data[[i]]) == 0 & class(data[[i]]) != "NULL") {
+        data[i] <- list(NULL)
+        # data[[i]] <- 999
+      }
+    }
+  }
+  return(data)
+}
+
+convert_missing_to_NA <- function(data) {
+  for (i in 1:length(data)) {
+    if (class(data[[i]]) == "list") {
+      data[[i]] <- convert_missing_to_NA(data[[i]])
+    } else {
+      if (length(data[[i]]) == 0 & !is.null(names(data[i]))) {
+        data[[i]] <- NA
+      }
+    }
+  }
+  return(data)
+}
+
+# how do you ensure you do an operation over every simple value in a deeply nested list?
+
 unpack_jar <- function(jar, label = NA, out = list()) {
   if (is.na(label)) label <- deparse(substitute(jar))
   jar %>% stack_jobs() -> out[[label]]
@@ -164,6 +209,76 @@ unpack_jar <- function(jar, label = NA, out = list()) {
     }
   }
   return(out)
+}
+
+# fishers dont work!
+
+scrape_yamls <- function(path, top_name = "interviews") {
+
+  my_yamls <- list.files(path, pattern = "*\\yaml$|*\\yml$",
+    recursive = FALSE, full.names = TRUE)
+
+  my_yamls %>% lapply(yaml_loads) %>% all() -> all_load
+
+  db <- list()
+
+  if (all_load) {
+
+    data_list <- list()
+
+    for (i in 1:length(my_yamls)) {
+      my_yamls[i] %>%
+        read_yaml() %>%
+        compact() %>%
+        map(compact) %>%
+        convert_to_characters() -> data_list[[i]]
+        print(my_yamls[i])
+    }
+
+    data_list %>% convert_missing_to_null() %>% 
+      unpack_jar_of_jars() %>% unpack_jar(top_name) -> db
+
+  }
+
+  return(db)
+
+}
+
+
+
+scrape_yamls_old <- function() {
+
+  my_yamls <- list.files("./2_yaml", pattern = "*\\yaml$",
+    recursive = TRUE, full.names = TRUE)
+
+  my_yamls %>% lapply(yaml_loads) %>% all() -> all_load
+
+  db <- list()
+
+  if (all_load) {
+
+    dir_init("./3_json")
+
+    my_jsons <- gsub("2_yaml", "3_json", my_yamls)
+    my_jsons <- gsub("yaml", "json", my_jsons)
+
+    for (i in 1:length(my_yamls)) {
+      my_yamls[i] %>%
+        yamltools::read_yaml() %>%
+        compact() %>%
+        map(compact) %>%
+        convert_to_characters() %>%
+        write_json(my_jsons[i], pretty = TRUE,
+          auto_unbox = TRUE)
+        print(my_jsons[i])
+    }
+
+    my_jsons %>% map(read_json, auto_unbox = TRUE) %>% unpack_list() -> db
+
+  }
+
+  return(db)
+
 }
 
 

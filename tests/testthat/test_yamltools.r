@@ -2,6 +2,10 @@
 
 # detect when the data_list entries are different structures 
 
+# there's a few issues with the rlist JSON files used as examples, i need to be able to load these!
+# or diagnose why they are bad
+# friends.json is a job of jobs, but its really supposed to be a jar of jobs...need to "dename" it!
+
 # lets start with JSON's recursive building blocks, the JSON array (jar) and JSON object (job):
 
 simple_jar <- list(
@@ -141,6 +145,58 @@ test_that("we can combine job jars into data frames", {
 
 })
 
+
+# often we will encounter jobs which have a variable number of keys in them
+
+simple_job1 <- list(
+  name = "B",
+  age = 38
+)
+simple_job2 <- list(
+  name = "B",
+  age = 38,
+  height = 100
+)
+
+job_jar21 <- list(
+  simple_job2,
+  simple_job1
+)
+
+# if we use bind_rows, this is okay
+
+test_that("we can combine jobs with variable numbers of keys", {
+  expect_silent(bind_rows(job_jar21))
+
+  # It turns out list.stack does a terrible job on these without fill = TRUE:
+  expect_error(list.stack(job_jar21))
+  expect_silent(list.stack(job_jar21, fill = TRUE))
+})
+
+## we also need to worry about situations in which NULL characters appear as the value of jobs
+# bind_rows will fail in this situation, unless we first convert the NULL to NA
+
+test_that("I know how to handle nulls inside objects", {
+
+  null_job <- list(
+    name = "a",
+    age = NULL
+  )
+
+  null_job_jar <- list(
+    simple_job,
+    null_job
+  )
+
+  expect_error(null_job_jar %>% bind_rows())
+  expect_warning(null_job_jar %>% list.stack())
+
+  na_job_jar <- convert_missing_to_NA(null_job_jar)
+  expect_silent(na_job_jar %>% bind_rows())
+  expect_silent(na_job_jar %>% list.stack())
+
+})
+
 # jars of jobs might also appear as a "subjar" when we map them out of a higher-level jar of jobs
 # specifically, if a job is a value inside another job
 # this is a case in which we would want to inherit the parent index
@@ -163,6 +219,10 @@ test_that("jars of jobs can handle NULL entries", {
     NULL,
     simple_job
   )
+
+  # importantly, we should only be replacing NULL in jobs, not jars
+  # so convert_missing_to_NA will not affect this NULL
+  expect_identical(null_job_jar, convert_missing_to_NA(null_job_jar))
 
   null_job_jar %>% prepend_parent_index() %>% list.stack() -> individuals
   expect_true(nrow(individuals) == 2)
@@ -223,17 +283,17 @@ test_that("we can combine a jar of jars into one jar", {
   expect_true(length(readings) == 8)
   # this has the advantage of being usable, even if we don't know what's in the jar
 
-})
-
-
-test_that("a jar of jars still behaves even with nulls inside", {
-
   # note we can also use rlist::list.flatten here, but this flattens *all* sublevels
   # so does not generalize as a solution
   readings <- list.flatten(simple_jar_jar)
   expect_true(is_jar(readings))
   expect_false(is_deep_list(readings))
   expect_true(length(readings) == 8)
+
+})
+
+
+test_that("a jar of jars still behaves even with nulls inside", {
 
   null_jar_jar <- list(
     simple_jar,
@@ -834,6 +894,8 @@ test_that("a complex interview can be tamed!", {
 # it works!
 
 
+
+
 # some weird situations
 # 1. the job as only one entry
 # 2. the jobs in the jar have a variable number of entries
@@ -842,7 +904,283 @@ test_that("a complex interview can be tamed!", {
 
 
 
+# flat array with identical keys
+list(
+  list(
+    date = "2017-01-01",
+    amount = -3,
+    notes = "blah"
+  ),
+  list(
+    date = "2017-01-02",
+    amount = -3,
+    notes = "blah"
+  ),
+  list(
+    date = "2017-01-03",
+    amount = -3,
+    notes = "blah"
+  )
+) %>% unpack_jar("transactions") -> transactions
+
+# flat array, some unique keys
+list(
+  list(
+    date = "2017-01-01",
+    amount = -3,
+    notes = "blah"
+  ),
+  list(
+    date = "2017-01-02",
+    amount = -3,
+    notes = "blah",
+    time = 1200
+  ),
+  list(
+    date = "2017-01-03",
+    amount = -3,
+    notes = "blah",
+    location = "home"
+  )
+) %>% unpack_jar("transactions") -> transactions
+
+# array with one subtable, `entries`
+list(
+  list(
+    interview_num = 1,
+    date = "2017-01-01",
+    name = "tom",
+    entries = list(
+      list(
+        amount = -3,
+        notes = "blah"
+      ),
+      list(
+        amount = -5,
+        notes = "blah2"
+      ),
+      list(
+        amount = -10,
+        notes = "blah blah"
+      )
+    )
+  ),
+  list(
+    interview_num = 2,
+    date = "2017-01-02",
+    name = "tom",
+    entries = list(
+      list(
+        amount = -3,
+        notes = "blah"
+      ),
+      list(
+        amount = -5,
+        notes = "blah2"
+      ),
+      list(
+        amount = -10,
+        notes = "blah blah"
+      )
+    )
+  ),
+  list(
+    interview_num = 3,
+    date = "2017-01-03",
+    name = "alice",
+    entries = list(
+      list(
+        amount = -3,
+        notes = "blah"
+      ),
+      list(
+        amount = -5,
+        notes = "blah2"
+      ),
+      list(
+        amount = -10,
+        notes = "blah blah"
+      )
+    )
+  )
+) %>% unpack_jar("interviews") -> db
+
+
+
+# lets go simpler first
+
+list(
+  list(
+    interview_num = 1,   # parent key of 'entries'
+    date = "2017-01-01",
+    name = "tom",
+    entries = list(
+      list(
+        amount = -3,
+        notes = "blah"
+      ),
+      list(
+        amount = -5,
+        notes = "blah2"
+      ),
+      list(
+        amount = -10,
+        notes = "blah blah"
+      )
+    )
+  )
+) %>% unpack_jar("interviews") -> db
+
+
+# becomes
+
+list(
+  list(
+    interview_num = 1,
+    date = "2017-01-01",
+    name = "tom",
+    entries = list(
+      list(
+        interview_num = 1,
+        amount = -3,
+        notes = "blah"
+      ),
+      list(
+        interview_num = 1,
+        amount = -5,
+        notes = "blah2"
+      ),
+      list(
+        interview_num = 1,
+        amount = -10,
+        notes = "blah blah"
+      )
+    )
+  )
+) %>% unpack_jar("interviews") -> db
+
+# becomes
+
+list(
+  list(
+    interview_num = 1,
+    amount = -3,
+    notes = "blah"
+  ),
+  list(
+    interview_num = 1,
+    amount = -5,
+    notes = "blah2"
+  ),
+  list(
+    interview_num = 1,
+    amount = -10,
+    notes = "blah blah"
+  )
+) %>% unpack_jar("interviews") -> db
+
+
+
+# more on missing values
+
+# what if the missingn value isn't a NULL but a character(0), etc?
+# what if every value in a job is missing??
+
+missing_job <- list(
+  name = NULL,
+  age = 18
+)
+
+missing_job2 <- list(
+  name = character(0),
+  age = 18
+)
+
+
+data_list <- list(
+  list(
+    name = character(0),
+    age = 18
+  ),
+  list(
+    name = "B",
+    age = 28
+  )
+)
+
+data_list2 <- list(
+  list(
+    name = character(0),
+    age = 18,
+    lucky_numbers = list(
+      1, 2, integer(0), 20
+    ),
+    anthropometrics = list(
+      height = 5,
+      width = numeric(0)
+    ),
+    pets = list(
+      list(
+        name = character(0),
+        age = integer(0)
+      ),
+      list(
+        name = "a",
+        age = 10
+      )
+    )
+  ),
+  list(
+    name = "B",
+    age = 28,
+    lucky_numbers = list(
+      1, 2, integer(0), 20
+    ),
+    anthropometrics = list(
+      height = 5,
+      width = 10
+    ),
+    pets = list(
+      list(
+        name = "A",
+        age = integer(0)
+      ),
+      list(
+        name = "a",
+        age = 10
+      )
+    )
+  )
+)
+
+test_that("we can convert missing values", {
+
+  convert_missing_to_null(missing_job)
+  convert_missing_to_NA(missing_job)
+
+# note that missing_job[[1]] addresses NULL but if you assign it to NULL it disappears
+# also true if you called missing_job$name!
+# another part of R's charm...ugh
+# see here: https://stackoverflow.com/questions/7944809/assigning-null-to-a-list-element-in-r
+# the solution is to do x[i] <- list(NULL), which preserves the name!!
+
+  convert_missing_to_null(missing_job2)
+  convert_missing_to_NA(missing_job2)
+
+  convert_missing_to_null(data_list)
+  convert_missing_to_NA(data_list)
+
+  convert_missing_to_null(data_list2)
+  convert_missing_to_NA(data_list2)
+
+  data_list2 %>% convert_missing_to_NA() %>% unpack_jar("people")
+
+})
+
+
 # loading data from files
+
+# how to handle empty entries? what to do with these character(0) entries? that's a problem...
 
 test_that("yaml_loads fails on invalid yamls", {
   expect_false(yaml_loads("invalid_yamls/faulty_indentation.yaml",
@@ -867,38 +1205,6 @@ test_that("a flat array with some unique keys loads", {
     read_yaml() %>% bind_rows() -> x
   expect_true(all(dim(x)==c(3, 5)))
 })
-
-# test_that("a file with one_subtable loads", {
-#   "single_yaml_to_json/one_subtable.yaml" %>% read_yaml() -> data_list
-#   subtables <- "entries"
-#   db <- extract_subtables(data_list, subtables)
-#   data_list %>% lapply(list.remove, subtables) %>%
-#     bind_rows() %>% as.data.frame() -> db$main
-#   expect_true(all(dim(db$main) == c(3,3)))
-#   expect_true(all(dim(db$entries) == c(9,2)))
-# })
-
-# test_that("a file with many subtables parses", {
-#   "single_yaml_to_json/n_subtables.yaml" %>% read_yaml() -> data_list
-#   schema <- list(
-#     name = "interviews",
-#     primary_key = "interview_num",
-#     subtables = list(
-#       list(
-#         name = "residents"
-#       ),
-#       list(
-#         name = "visitors"
-#       )
-#     )
-#   )
-#   schema$subtables %>% list.mapv(name) -> subtables
-#   db <- extract_subtables(data_list, subtables)
-#   data_list %>% lapply(list.remove, subtables) %>%
-#     bind_rows() %>% as.data.frame() -> db$main
-#   expect_true(nrow(db$residents)==9)
-#   expect_true(nrow(db$visitors)==9)
-# })
 
 # combining files:
 
@@ -935,4 +1241,3 @@ test_that("can combine n-subtable yamls into one dataframe", {
     bind_rows() %>% as.data.frame() -> output
   expect_true(all(dim(output) == c(21,2)))
 })
-
