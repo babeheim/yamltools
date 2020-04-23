@@ -1182,18 +1182,6 @@ test_that("we can convert missing values", {
 
 # how to handle empty entries? what to do with these character(0) entries? that's a problem...
 
-test_that("yaml_loads fails on invalid yamls", {
-  expect_false(yaml_loads("invalid_yamls/faulty_indentation.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_square_brackets.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_quotations.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_quotations_ii.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/duplicated_key.yaml",
-    silent = TRUE))
-})
 
 test_that("flat_array.yml loads as a data frame", {
   "single_yaml_to_json/flat_array.yml" %>% read_yaml() %>% bind_rows() -> x

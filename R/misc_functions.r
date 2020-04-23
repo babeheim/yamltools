@@ -284,18 +284,22 @@ scrape_yamls_old <- function() {
 
 ################
 
-validate_yamls <- function(path) {
-  my_yamls <- list.files(path, pattern="\\.yml|\\.yaml", full.names = TRUE)
+validate_yamls <- function(path, recursive = TRUE, silent = FALSE, report = FALSE) {
+  my_yamls <- list.files(path, pattern="\\.yml|\\.yaml|\\.yaml.txt",
+    full.names = TRUE, recursive = recursive)
+  if (length(my_yamls) == 0) stop("no yamls detected at this path!")
+  out <- list()
   for (i in 1:length(my_yamls)) {
     print(my_yamls[i])
-    try(read_yaml(my_yamls[i]), silent = FALSE)
+    out[[i]] <- try(read_yaml(my_yamls[i]), silent = silent)
   }
+  errors <- unlist(lapply(out, class)) == "try-error"
+  if (report == TRUE) return(out[errors])
 }
 
-yaml_loads <- function(path, silent = FALSE) {
-  res <- try(read_yaml(path), silent = silent)
-  failed <- class(res)=="try-error"
-  return(!failed)
+yaml_loads <- function(file, silent = TRUE) {
+  res <- try(read_yaml(file), silent = silent)
+  out <- class(res) != "try-error"
 }
 
 validate_keys <- function(data, pattern, nchar = NA) {
