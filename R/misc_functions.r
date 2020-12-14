@@ -1,4 +1,25 @@
 
+read_yaml2 <- function (file, prep = TRUE) {
+  x <- readLines(file, warn = FALSE)
+  if (prep) {
+    x <- gsub("\"", "'", x)
+    x <- gsub(":  ", ": ", x)
+    for (i in 1:length(x)) {
+      if (
+           length(grep(": ", x[i])) > 0 &
+           length(grep(": $", x[i])) == 0
+         ) {
+        x[i] <- gsub(": ", ": \"", x[i])
+        x[i] <- gsub("$", "\"", x[i])
+      }
+    }
+    if (x[length(x)] != "") x <- c(x, "")
+  }
+  output <- yaml.load(paste(x, collapse = "\n"))
+  return(output)
+}
+
+
 convert_to_characters <- function(data) {
   out <- data
   for (i in 1:length(data)) {
@@ -211,8 +232,6 @@ unpack_jar <- function(jar, label = NA, out = list()) {
   return(out)
 }
 
-# fishers dont work!
-
 scrape_yamls <- function(path, top_name = "interviews") {
 
   my_yamls <- list.files(path, pattern = "*\\yaml$|*\\yml$",
@@ -228,7 +247,7 @@ scrape_yamls <- function(path, top_name = "interviews") {
 
     for (i in 1:length(my_yamls)) {
       my_yamls[i] %>%
-        read_yaml() %>%
+        read_yaml2() %>%
         compact() %>%
         map(compact) %>%
         convert_to_characters() -> data_list[[i]]
@@ -264,7 +283,7 @@ scrape_yamls_old <- function() {
 
     for (i in 1:length(my_yamls)) {
       my_yamls[i] %>%
-        yamltools::read_yaml() %>%
+        read_yaml2() %>%
         compact() %>%
         map(compact) %>%
         convert_to_characters() %>%
@@ -291,14 +310,14 @@ validate_yamls <- function(path, recursive = TRUE, silent = FALSE, report = FALS
   out <- list()
   for (i in 1:length(my_yamls)) {
     print(my_yamls[i])
-    out[[i]] <- try(read_yaml(my_yamls[i]), silent = silent)
+    out[[i]] <- try(read_yaml2(my_yamls[i]), silent = silent)
   }
   errors <- unlist(lapply(out, class)) == "try-error"
   if (report == TRUE) return(out[errors])
 }
 
 yaml_loads <- function(file, silent = TRUE) {
-  res <- try(read_yaml(file), silent = silent)
+  res <- try(read_yaml2(file), silent = silent)
   out <- class(res) != "try-error"
 }
 

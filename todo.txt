@@ -1,0 +1,4 @@
+- detect when the yamls have different, irreconcilable schemas!
+- bug: if in convert_to_characters, data[[i]] might be a totally empty list!
+- bug: fishers dont work!
+- issue: we have some un-quoted numbers that get incorrectly interpreted as octals -> this is a persistent issue with read_yaml which we need to fix!
