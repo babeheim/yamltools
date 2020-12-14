@@ -1,5 +1,7 @@
 
-- date: 2017-01-01
+- interview_num: 1
+  date: 2017-01-01
+  name: "tom"
   entries: 
     - amount: -3
       notes: blah
@@ -8,7 +10,9 @@
     - amount: -10
       notes: blah blah
 
-- date: 2017-01-02
+- interview_num: 2
+  date: 2017-01-02
+  name: "tom"
   entries: 
     - amount: -3
       notes: blah
@@ -17,7 +21,9 @@
     - amount: -10
       notes: blah blah
 
-- date: 2017-01-03
+- interview_num: 3
+  date: 2017-01-03
+  name: "alice"
   entries: 
     - amount: -3
       notes: blah

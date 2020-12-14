@@ -1,0 +1,89 @@
+pdf_hash: e161815
+
+principal_investigator: dsfdsfdsa
+transcription_protocol: fdsacdsa 
+
+transcriber: cdsacdsacdsa
+
+####### for revision only#######
+reviewer         : cdsacdsa
+reviewer_comments: ""
+################################
+
+margin_notes        : ""
+transcriber_comments: ""
+
+camp: 
+
+# notes --> words found on the PDF
+# comments --> the transcriber's words
+interview_date   : 2018-07-24
+date_notes       : 
+date_comments    : 
+
+interviewee_id   : 
+picture_id       : 011/02/229
+id_comments      : 
+
+interview_time   : Afternoon
+interview_number : 
+
+interviewee_name : cdsacdsacds
+interviewee_notes: NOT BF (only fake)
+
+birth_place      : cdsacdsa
+raised           : vdsacdsa
+
+sex              : f
+age              : 
+age_notes        : 
+
+food_diary:
+- food    : MUBUNAKA (pâte of banana & oil)
+  time    : yest. evening
+  amount  : only a bit
+  where   : Banana planted by her
+
+- food    : MBIA
+  time    : yest. evening
+  amount  : 
+  where   : 
+
+- food    : KOKO; FOUFOU
+  time    : yest evening
+  amount  : a bit in a leave
+  where   : 
+
+- food    : MBIA
+  time    : yest evening
+  amount  : a bit in a leave
+  where   : MBIA → forest
+
+- food    : DJABUKA (SAKASAKA)
+  time    : yest evening (after kids sleep)
+  amount  : only a bit
+  where   : friends brought it
+
+- food    : vinosole
+  time    : today
+  amount  : 2 verre vinosole
+  where   : Bantu
+
+- food    : pastice
+  time    : today
+  amount  : 1 pastice
+  where   : HOUSE GIFT
+
+fav_food      : KOKO
+fav_drink     : pastice
+
+taste_control : a bit bitter
+taste_ptc     : a bit bitter
+taste_th10    : salty
+taste_control2: salty
+taste_notes   : "[taste_control, taste_ptc] different"
+
+interviewer_notes:
+- "NOT FOREST: DIDN'T EAT THIS MORNING"
+
+pi_notes         :

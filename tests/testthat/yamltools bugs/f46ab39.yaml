@@ -1,0 +1,71 @@
+pdf_hash: f46ab39
+
+principal_investigator: cdsacdsa
+transcription_protocol: cdsacdsa
+
+transcriber: cdsacdsacdsa
+
+####### for revision only#######
+reviewer         : gdfsafcdsac
+reviewer_comments: ""
+################################
+
+margin_notes        : ""
+transcriber_comments: ""
+
+camp: Longa
+
+# notes --> words found on the PDF
+# comments --> the transcriber's words
+interview_date   : xxxx-07-29
+date_notes       : 
+date_comments    : 
+
+interviewee_id   : 
+picture_id       : 001/17/x
+id_comments      : 
+
+interview_time   : Morning
+interview_number : 
+
+interviewee_name : vfdsacdsa
+interviewee_notes: Not preg, not bf.
+
+birth_place      : cdsacd
+raised           : vvdsas
+
+sex              : f
+age              : 
+age_notes        : 
+
+food_diary:
+- food    : (Makombo (champignon); KOKO; KONGO; cube; sel
+  time    : yesterday Morning
+  amount  : 1 big plate
+  where   : forest
+
+- food    : DJABUKA (SAKASAKA); KONGO
+  time    : yesterday evening
+  amount  : 1 big plate
+  where   : 
+
+- food    : KOKO (same as yesterday)
+  time    : this morn
+  amount  : 1 small plate
+  where   : 
+
+fav_food      : KOKO
+fav_drink     : Lotoko
+
+taste_control : very bitter
+taste_ptc     : sweet (very)
+taste_th10    : very bitter
+taste_control2: very sweet
+taste_notes   : "[taste_control, taste_ptc, taste_th10] CONT & TH10 same?"
+
+interviewer_notes:
+- FOREST → KOKO (Didn't eat there)
+- "May [insertion: water]"
+- NO ALCOHOL
+
+pi_notes         :
