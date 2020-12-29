@@ -9,8 +9,8 @@ read_yaml2 <- function (file, prep = TRUE) {
            length(grep(": ", x[i])) > 0 &
            length(grep(": $", x[i])) == 0
          ) {
-        x[i] <- gsub(": ", ": \"", x[i])
-        x[i] <- gsub("$", "\"", x[i])
+        x[i] <- sub(": ", ": \"", x[i])
+        x[i] <- sub("$", "\"", x[i])
       }
     }
     if (x[length(x)] != "") x <- c(x, "")

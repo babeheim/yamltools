@@ -1155,8 +1155,8 @@ data_list2 <- list(
 
 test_that("we can convert missing values", {
 
-  convert_missing_to_null(missing_job)
-  convert_missing_to_NA(missing_job)
+  expect_silent(convert_missing_to_null(missing_job))
+  expect_silent(convert_missing_to_NA(missing_job))
 
 # note that missing_job[[1]] addresses NULL but if you assign it to NULL it disappears
 # also true if you called missing_job$name!
@@ -1164,16 +1164,16 @@ test_that("we can convert missing values", {
 # see here: https://stackoverflow.com/questions/7944809/assigning-null-to-a-list-element-in-r
 # the solution is to do x[i] <- list(NULL), which preserves the name!!
 
-  convert_missing_to_null(missing_job2)
-  convert_missing_to_NA(missing_job2)
+  expect_silent(convert_missing_to_null(missing_job2))
+  expect_silent(convert_missing_to_NA(missing_job2))
 
-  convert_missing_to_null(data_list)
-  convert_missing_to_NA(data_list)
+  expect_silent(convert_missing_to_null(data_list))
+  expect_silent(convert_missing_to_NA(data_list))
 
-  convert_missing_to_null(data_list2)
-  convert_missing_to_NA(data_list2)
+  expect_silent(convert_missing_to_null(data_list2))
+  expect_silent(convert_missing_to_NA(data_list2))
 
-  data_list2 %>% convert_missing_to_NA() %>% unpack_jar("people")
+  expect_silent(data_list2 %>% convert_missing_to_NA() %>% unpack_jar("people"))
 
 })
 
