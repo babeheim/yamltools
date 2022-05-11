@@ -232,10 +232,10 @@ unpack_jar <- function(jar, label = NA, out = list()) {
   return(out)
 }
 
-scrape_yamls <- function(path, top_name = "interviews") {
+scrape_yamls <- function(path, top_name = "interviews", recursive = FALSE) {
 
   my_yamls <- list.files(path, pattern = "*\\yaml$|*\\yml$",
-    recursive = FALSE, full.names = TRUE)
+    recursive = recursive, full.names = TRUE)
 
   my_yamls %>% lapply(yaml_loads) %>% all() -> all_load
 
