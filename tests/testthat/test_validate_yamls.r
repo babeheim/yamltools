@@ -3,12 +3,6 @@
 test_that("yaml_loads fails on invalid yamls", {
   expect_false(yaml_loads("invalid_yamls/faulty_indentation.yaml",
     silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_square_brackets.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_quotations.yaml",
-    silent = TRUE))
-  expect_false(yaml_loads("invalid_yamls/faulty_quotations_ii.yaml",
-    silent = TRUE))
   expect_false(yaml_loads("invalid_yamls/duplicated_key.yaml",
     silent = TRUE))
 })

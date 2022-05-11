@@ -319,6 +319,7 @@ validate_yamls <- function(path, recursive = TRUE, silent = FALSE, report = FALS
 yaml_loads <- function(file, silent = TRUE) {
   res <- try(read_yaml2(file), silent = silent)
   out <- class(res) != "try-error"
+  return(out)
 }
 
 validate_keys <- function(data, pattern, nchar = NA) {
